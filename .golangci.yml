@@ -1,0 +1,11 @@
+run:
+  deadline: 30s
+  tests: false
+
+linters:
+  enable:
+    - govet
+    - golint
+
+issues:
+  exclude-use-default: false
