@@ -136,9 +136,9 @@ func (f *IPFilter) SearchIP(ip net.IP) (bool, error) {
 	return f.tree.Search(&cidr{ip, ip}), nil
 }
 
-// NewGlobalUnicastIPFilter returns a new IPFilter which can filter out all the
-// global unicast IPv4 and IPv6 IPs.
-func NewGlobalUnicastIPFilter() *IPFilter {
+// NewNonGlobalUnicastIPFilter returns a new IPFilter which can filter out all
+// the non-global unicast IPv4 and IPv6 IPs.
+func NewNonGlobalUnicastIPFilter() *IPFilter {
 	f := new(IPFilter)
 	// limited broadcast
 	_ = f.Add("255.255.255.255")
@@ -161,7 +161,7 @@ func NewGlobalUnicastIPFilter() *IPFilter {
 // NewNonPublicIPFilter returns a new IPFilter which can filter out all the
 // non-public IPv4 and IPv6 IPs, such as private addresses.
 func NewNonPublicIPFilter() *IPFilter {
-	f := NewGlobalUnicastIPFilter()
+	f := NewNonGlobalUnicastIPFilter()
 	// RFC1918
 	_ = f.Add("10.0.0.0/8")
 	_ = f.Add("172.16.0.0/12")
