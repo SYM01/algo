@@ -4,9 +4,16 @@
 [![codecov](https://codecov.io/gh/SYM01/algo/branch/main/graph/badge.svg?token=53JXZ8JNS4)](https://codecov.io/gh/SYM01/algo)
 
 
-algo == common **AL**gorithm data structures for **GO**lang.
+algo == common **AL**gorithms and data structures for **GO**lang.
 
-More common data structures will be implemented here.
+Features:
+
+- [x] `avl`: an easy-to-use AVL tree in Golang
+- [x] `ipfilter`: a high performance IP filter based on AVL tree
+- [x] `concurrent`: some well-tested concurrent features, such as Goroutine pool
+
+More common algorithms and data structures will be implemented here.
+
 
 ## Install
 
