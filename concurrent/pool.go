@@ -29,24 +29,31 @@ type Action struct {
 	// Runner is a func need to be executed. It may return a list of new
 	// actions. These actions will be executed after the current action had
 	// finished
-	Runner func() []*Action
+	Runner func() []Action
 
 	// Dependencies for the current action. The current action will only be
 	// executed after all dependencies had been finished
-	Dependencies []*Action
+	Dependencies []Action
 }
 
 // ActionPool is an action pool based on goroutines
 type ActionPool interface {
 	// Do an action. It's panic-free if using it correctly.
-	// It will panic if you do a nil action, or do an action in a closed pool.
-	Do(*Action)
+	// It will panic if you do an action in a closed pool.
+	Do(Action)
+
+	// Map returns a slice of result that applies `f` to every item of `input`.
+	// The `ret` is in-order.
+	Map(input []interface{}, f func(interface{}) interface{}) (ret []interface{})
+
+	// Wait until all the actions had been finished.
+	Wait()
 
 	// Wait until all the actions had been finished, and close the pool.
 	WaitAndClose()
 
 	// Set a logger to output some err msg when panic. os.Stderr will be used
-	// by default
+	// by default.
 	SetLogger(io.Writer)
 }
 
@@ -59,11 +66,7 @@ type actionPool struct {
 }
 
 // Do implements ActionPool's method.
-func (p *actionPool) Do(a *Action) {
-	if a == nil {
-		panic("ActionPool: the action is nil")
-	}
-
+func (p *actionPool) Do(a Action) {
 	if atomic.LoadUint32(&p.closed) > 0 {
 		panic("ActionPool: the current pool had already been closed.")
 	}
@@ -76,7 +79,7 @@ func (p *actionPool) Do(a *Action) {
 }
 
 // do an action and free a slot when finished executing.
-func (p *actionPool) do(a *Action, parentWg *sync.WaitGroup) {
+func (p *actionPool) do(a Action, parentWg *sync.WaitGroup) {
 	// clean up
 	defer func() {
 		// parent waitgroup
@@ -122,6 +125,11 @@ func (p *actionPool) panicCatcher() {
 	}
 }
 
+// Wait implements ActionPool's method.
+func (p *actionPool) Wait() {
+	p.wg.Wait()
+}
+
 // WaitAndClose implements ActionPool's method.
 func (p *actionPool) WaitAndClose() {
 	atomic.StoreUint32(&p.closed, 1)
@@ -131,4 +139,29 @@ func (p *actionPool) WaitAndClose() {
 // SetLogger implements ActionPool's method.
 func (p *actionPool) SetLogger(l io.Writer) {
 	p.logger = l
+}
+
+// Map implements ActionPool's method.
+func (p *actionPool) Map(input []interface{}, f func(interface{}) interface{}) (ret []interface{}) {
+	if len(input) == 0 {
+		return
+	}
+
+	ret = make([]interface{}, len(input))
+	mu := sync.Mutex{}
+	for tmpIdx := range input {
+		idx := tmpIdx // just copy the value
+		p.Do(Action{
+			Runner: func() []Action {
+				r := f(input[idx])
+				mu.Lock()
+				ret[idx] = r
+				mu.Unlock()
+				return nil
+			},
+		})
+	}
+
+	p.Wait()
+	return
 }

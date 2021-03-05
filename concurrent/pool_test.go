@@ -2,6 +2,7 @@ package concurrent_test
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -19,8 +20,8 @@ func TestPoolWithOneSlot(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		c := strconv.Itoa(i) + "."
 		expected.WriteString(c)
-		pool.Do(&concurrent.Action{
-			Runner: func() []*concurrent.Action {
+		pool.Do(concurrent.Action{
+			Runner: func() []concurrent.Action {
 				buf.WriteString(c)
 				return nil
 			},
@@ -45,22 +46,22 @@ func TestPoolWithOneSlotAndDeps(t *testing.T) {
 		expected.WriteString("2@")
 		expected.WriteString(c)
 
-		pool.Do(&concurrent.Action{
-			Runner: func() []*concurrent.Action {
+		pool.Do(concurrent.Action{
+			Runner: func() []concurrent.Action {
 				buf.WriteString(strconv.Itoa(int(atomic.LoadInt32(p))))
 				buf.WriteString("@")
 				buf.WriteString(c)
 				return nil
 			},
-			Dependencies: []*concurrent.Action{
+			Dependencies: []concurrent.Action{
 				{
-					Runner: func() []*concurrent.Action {
+					Runner: func() []concurrent.Action {
 						atomic.AddInt32(p, 1)
 						return nil
 					},
 				},
 				{
-					Runner: func() []*concurrent.Action {
+					Runner: func() []concurrent.Action {
 						atomic.AddInt32(p, 1)
 						return nil
 					},
@@ -81,27 +82,27 @@ func TestPoolConcurrency(t *testing.T) {
 	tStart := time.Now()
 
 	for i := 0; i < 5; i++ {
-		pool.Do(&concurrent.Action{
-			Runner: func() []*concurrent.Action {
+		pool.Do(concurrent.Action{
+			Runner: func() []concurrent.Action {
 				// 2s will elapse
 				time.Sleep(time2sleep)
 
 				// 2s will elapse
-				return []*concurrent.Action{
+				return []concurrent.Action{
 					{
-						Runner: func() []*concurrent.Action {
+						Runner: func() []concurrent.Action {
 							time.Sleep(time2sleep)
 							return nil
 						},
 					},
 					{
-						Runner: func() []*concurrent.Action {
+						Runner: func() []concurrent.Action {
 							time.Sleep(time2sleep)
 							return nil
 						},
 					},
 					{
-						Runner: func() []*concurrent.Action {
+						Runner: func() []concurrent.Action {
 							time.Sleep(time2sleep)
 							return nil
 						},
@@ -119,25 +120,22 @@ func TestPoolConcurrency(t *testing.T) {
 
 func TestPanic(t *testing.T) {
 	pool := concurrent.NewActionPool(0)
-	expectPanic(func() {
-		pool.Do(nil)
-	}, t)
-
-	pool.Do(&concurrent.Action{})
+	pool.Map(nil, nil)
+	pool.Do(concurrent.Action{})
 	pool.WaitAndClose()
 	expectPanic(func() {
-		pool.Do(&concurrent.Action{})
+		pool.Do(concurrent.Action{})
 	}, t)
 
 	pool = concurrent.NewActionPool(0)
 	buf := new(bytes.Buffer)
 	pool.SetLogger(buf)
-	pool.Do(&concurrent.Action{
-		Runner: func() []*concurrent.Action {
+	pool.Do(concurrent.Action{
+		Runner: func() []concurrent.Action {
 			panic("panic test")
 		},
 	})
-	pool.WaitAndClose()
+	pool.Wait()
 	if !strings.HasPrefix(buf.String(), "panic test") {
 		t.Fatalf("unexpected result, expect logger with panic msg")
 	}
@@ -151,4 +149,32 @@ func expectPanic(f func(), t *testing.T) {
 	}()
 
 	f()
+}
+
+func ExampleActionPool_Map() {
+	pool := concurrent.NewActionPool(10)
+	input := []interface{}{
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+	}
+	transFunc := func(i interface{}) interface{} {
+		return 12 - i.(int)
+	}
+
+	ret := pool.Map(input, transFunc)
+	for _, item := range ret {
+		fmt.Println(item)
+	}
+
+	// Output:
+	// 11
+	// 10
+	// 9
+	// 8
+	// 7
+	// 6
+	// 5
+	// 4
+	// 3
+	// 2
+	// 1
 }

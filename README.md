@@ -12,7 +12,7 @@ Features:
 - [x] `ipfilter`: a high performance IP filter based on AVL tree
 - [x] `concurrent`: some well-tested concurrent features, such as Goroutine pool
 
-More common algorithms and data structures will be implemented here.
+More and more common algorithms and data structures will be implemented here.
 
 
 ## Install
