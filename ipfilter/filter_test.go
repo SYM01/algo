@@ -25,6 +25,8 @@ func TestNewNonPublicIPFilter(t *testing.T) {
 		{"1.1.1.1", false},             // public ip
 		{"::ffff:192.0.2.128", false},  // public IP4-mapped IPv6 address
 		{"::ffff:192.168.2.128", true}, // public IP4-mapped IPv6 address
+		{"100.64.0.0", true},
+		{"64:ff9b:1::0.0.0.0", true}, // IPv4/IPv6 translation[16]
 	}
 	for _, testcase := range testcases {
 		found, err := f.Search(testcase.ip)

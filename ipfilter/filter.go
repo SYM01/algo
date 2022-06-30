@@ -167,7 +167,11 @@ func NewNonPublicIPFilter() *IPFilter {
 	_ = f.Add("172.16.0.0/12")
 	_ = f.Add("192.168.0.0/16")
 
+	_ = f.Add("100.64.0.0/10")
+	_ = f.Add("192.0.0.0/24")
+
 	// IPv6 private
 	_ = f.Add("fc00::/7")
+	_ = f.Add("64:ff9b:1::/48")
 	return f
 }
