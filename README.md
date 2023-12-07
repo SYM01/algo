@@ -11,6 +11,8 @@ Features:
 - [x] `avl`: an easy-to-use AVL tree in Golang
 - [x] `ipfilter`: a high performance IP filter based on AVL tree
 - [x] `concurrent`: some well-tested concurrent features, such as Goroutine pool
+- [x] `stream`: a set of utils to modify the stream, such as streaming replace
+
 
 More and more common algorithms and data structures will be implemented here.
 
