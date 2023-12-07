@@ -6,10 +6,18 @@ import (
 	"io"
 )
 
+// ReplaceReader is a wrapper of io.Reader, and have additional methods.
+type ReplaceReader interface {
+	io.Reader
+
+	// Count() returns the number of replacements.
+	Count() int
+}
+
 // NewSimpleReplacer returns a new Reader with streaming replace supports.
 // It will replace every sequences matching `old` with `new`.
 // This replacer will try to use as less mem as possible.
-func NewSimpleReplacer(r io.Reader, old []byte, new []byte) io.Reader {
+func NewSimpleReplacer(r io.Reader, old []byte, new []byte) ReplaceReader {
 	return &simpleReplacer{
 		underlying: r,
 
@@ -29,6 +37,13 @@ type simpleReplacer struct {
 	bufLen     int
 	overlapped int
 	lastErr    error
+
+	// number of replacements
+	cnt int
+}
+
+func (r *simpleReplacer) Count() int {
+	return r.cnt
 }
 
 func (r *simpleReplacer) consumeBuffer(p []byte) (n int, err error) {
@@ -66,6 +81,7 @@ func (r *simpleReplacer) Read(p []byte) (n int, err error) {
 		}
 
 		cur += idx + r.oldLen
+		r.cnt++
 	}
 
 	r.overlapped = overlapLen(r.buf[cur:], r.old, r.oldLen-1)
